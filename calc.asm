@@ -105,6 +105,7 @@ reget:
 	jb reget
 	cmp ah,0BH
 	ja reget
+	call char_show ; al为ASCII码
 	sub al,30H ; 将ASCII码转换为数字，存在内存中
 	mov [bx],al
 	dec bx
@@ -147,6 +148,29 @@ t:	sub byte ptr [bx+si],30H
 	pop ax
 	pop cx
 	pop bx
+	ret
+
+char_show:
+	; al为要输出字符的ASCII码
+	push ax
+	push bx
+	push cx
+	push dx
+	mov ah,9
+	mov bl,7
+	mov bh,0
+	mov cx,1
+	int 10h
+	mov ah,3
+	mov bh,0
+	int 10h
+	inc dl
+	mov ah,2
+	int 10h
+	pop dx
+	pop cx
+	pop bx
+	pop ax
 	ret
 
 exit:
