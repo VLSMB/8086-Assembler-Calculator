@@ -35,7 +35,7 @@ input_choice:
 	je div_before
 	cmp ah,37H
 	je mul_before
-	; 输入了其他按键时
+	; Press other button
 	mov dx,offset illeagal
 	mov ah,09H
 	int 21h
@@ -58,24 +58,28 @@ div_before:
 	jmp init
 	
 do_add:
+	; do addition
 	mov dx,offset debug
 	mov ah,09H
 	int 21h
 	ret
 
 do_sub:
+	; do subtraction
 	mov dx,offset debug
 	mov ah,09H
 	int 21h
 	ret
 
 do_mul:
+	; do multiplication
 	mov dx,offset debug
 	mov ah,09H
 	int 21h
 	ret
 	
-do_div:
+do_div:	
+	; do division
 	mov dx,offset debug
 	mov ah,09H
 	int 21h
