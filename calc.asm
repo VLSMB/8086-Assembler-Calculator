@@ -196,11 +196,158 @@ do_add_end:
 	ret
 
 do_sub:
-	mov dx,offset debug
+	; 减法函数
+	push ax
+	push dx
+	push bx
+	push si
+	push cx
+	push di
+	; 用di来检测两个数据的大小，默认为0，第一次计算若为负数，则di变为1，重新进行计算
+	
+	mov di,0
+	
+	mov dx,offset first
 	mov ah,09H
 	int 21h
-	ret
+	mov bx,offset input_num_one
+	call get_input   ; bx为数字存放地址
+	; call debug_output
+	mov dx,offset second
+	mov ah,09H
+	int 21h
+	mov bx,offset input_num_two
+	call get_input
+	; call debug_output
+	
+	mov dx,offset output_result
+	mov ah,09H
+	int 21h
+	
+	; 初始化calc_result
+sub_result_changed:
+	mov bx,offset calc_result
+	mov byte ptr [bx],'#'
+	inc bx
+	mov cx,10
+sub_init:
+	mov byte ptr [bx],0
+	inc bx
+	loop sub_init
+	
+	; 进行减法计算，思路为：将第一个数字每一位先安放至calc_result，再将第二位数字每一位与其相减。
+	; 第一个数字
+	cmp di,1
+	je changed1
+	mov bx,offset input_num_one
+	jmp changed1end
+changed1:
+	mov bx,offset input_num_two
+changed1end:
+	mov si,offset calc_result
+	add si,10
+sub1:
+	inc bx
+	cmp byte ptr [bx],'#'
+	je sub1
+sub2:	
+	push ax
+	mov al,[bx]
+	mov [si],al
+	pop ax
+	dec si
+	inc bx
+	cmp  byte ptr [bx],'#'
+	jne sub2
+	
+	; 第二个数字
+	cmp di,1
+	je changed2
+	mov bx,offset input_num_two
+	jmp changed2end
+changed2:
+	mov bx,offset input_num_one
+changed2end:
+	mov si,offset calc_result
+	add si,10
+sub3:
+	inc bx
+	cmp byte ptr [bx],'#'
+	je sub3
+sub4:	
+	push ax
+	mov al,[bx]
+	cmp [si],al		; 第一位数字小于第二位数字时要退位
+	jnb sub_end
+	sub byte ptr [si-1],1
+	add byte ptr [si],10
+sub_end:
+	sub [si],al
+	pop ax
+	dec si
+	inc bx
+	cmp  byte ptr [bx],'#'
+	jne sub4
+	
+	; 输出结果
+	
+	mov bx,offset calc_result
+	cmp byte ptr [bx],22H			; #-1=22H 可能存在高位溢出
+	jne del_zero_sub
+	mov al,2DH
+	call char_show
+	mov di,1
+	jmp near ptr sub_result_changed
+	; inc bx
+	; jmp not_high_sub
+del_zero_sub:
+	inc bx
+	cmp byte ptr [bx],0
+	je del_zero_sub
+	cmp byte ptr [bx],'#'
+	jne not_high_sub
 
+	mov al,30H
+	call char_show
+	jmp do_sub_end
+
+not_high_sub:
+	cmp byte ptr [bx],'#'
+	je do_sub_end
+	mov al,[bx]
+	add al,30H
+	cmp al,2FH
+	jne sub_over
+	mov al,'-'
+	call char_show
+	mov di,1
+	jmp near ptr sub_result_changed
+sub_over:
+	call char_show
+	inc bx
+	jmp not_high_sub
+	
+	; call debug_output
+	
+	; mov dx,offset debug
+	; mov ah,09H
+	; int 21h
+	
+do_sub_end:
+	mov dx,offset continue
+	mov ah,09H
+	int 21h
+	mov ah,0
+	int 16h
+	
+	pop di
+	pop cx
+	pop si
+	pop bx
+	pop dx
+	pop ax
+	ret
+	
 do_mul:
 	mov dx,offset debug
 	mov ah,09H
