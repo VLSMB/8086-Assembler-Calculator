@@ -10,6 +10,9 @@ first  db 0AH,0DH,"Input the first number(only 10 numbers):$"
 second  db 0AH,0DH,"Input the second number(only 10 numbers):$"
 input_num_one db '#',00H,00H,00H,00H,00H,00H,00H,00H,00H,00H,'#',00H;暂时只提供32位加减法，64位以后再补吧…
 input_num_two db '#',00H,00H,00H,00H,00H,00H,00H,00H,00H,00H,'#',00H
+calc_result db '#',00H,00H,00H,00H,00H,00H,00H,00H,00H,00H,'#','$'
+output_result db 0AH,0DH,0AH,0DH,"The result is:$"
+continue db 0AH,0DH,"Press any button to continue...$",0AH,0DH,0AH,0DH
 data ends
 stack segment
 	db 128 dup(0)
@@ -62,26 +65,131 @@ div_before:
 	jmp init
 	
 do_add:
+	; 加法函数
 	push ax
 	push dx
 	push bx
+	push si
+	push cx
 	
 	mov dx,offset first
 	mov ah,09H
 	int 21h
 	mov bx,offset input_num_one
 	call get_input   ; bx为数字存放地址
-	call debug_output
+	; call debug_output
 	mov dx,offset second
 	mov ah,09H
 	int 21h
 	mov bx,offset input_num_two
 	call get_input
-	call debug_output
+	; call debug_output
 	
-	mov dx,offset debug
+	; 初始化calc_result
+	mov bx,offset calc_result
+	mov byte ptr [bx],'#'
+	inc bx
+	mov cx,10
+add_init:
+	mov byte ptr [bx],0
+	inc bx
+	loop add_init
+	
+	; 进行加法计算，思路为：将第一个数字每一位先安放至calc_result，再将第二位数字每一位加入到此。
+	; 第一个数字
+	mov bx,offset input_num_one
+	mov si,offset calc_result
+	add si,10
+l1:	inc bx
+	cmp byte ptr [bx],'#'
+	je l1
+l2:	
+	push ax
+	mov al,[bx]
+	mov [si],al
+	pop ax
+	dec si
+	inc bx
+	cmp  byte ptr [bx],'#'
+	jne l2
+	
+	; 第二个数字
+	mov bx,offset input_num_two
+	mov si,offset calc_result
+	add si,10
+l3:	inc bx
+	cmp byte ptr [bx],'#'
+	je l3
+l4:	push ax
+	mov al,[bx]
+	add [si],al
+	cmp byte ptr [si],10		; 该位大于10时要进一
+	jb add_end
+	add byte ptr [si-1],1
+	sub byte ptr [si],10
+add_end:
+	pop ax
+	dec si
+	inc bx
+	cmp  byte ptr [bx],'#'
+	jne l4
+	; 进一步检查，结果中是否存在一位大于10的情况（当输入数字位数不相同时可能出现该情况）
+	mov si,offset calc_result
+	add si,10
+	mov cx,10
+add_check:
+	cmp byte ptr [si],10
+	jb add_check_end
+	add byte ptr [si-1],1
+	sub byte ptr [si],10
+add_check_end:
+	dec si
+	loop add_check
+	
+	; 输出结果
+	mov dx,offset output_result
 	mov ah,09H
 	int 21h
+	mov bx,offset calc_result
+	cmp byte ptr [bx],'$'			; #+1=$ 可能存在高位溢出
+	jne del_zero
+	mov al,31H
+	call char_show
+	inc bx
+	jmp not_high
+del_zero:
+	inc bx
+	cmp byte ptr [bx],0
+	je del_zero
+	cmp byte ptr [bx],'#'
+	jne not_high
+	mov al,30H
+	call char_show
+	jmp do_add_end
+not_high:
+	cmp byte ptr [bx],'#'
+	je do_add_end
+	mov al,[bx]
+	add al,30H
+	call char_show
+	inc bx
+	jmp not_high
+	
+	; call debug_output
+	
+	; mov dx,offset debug
+	; mov ah,09H
+	; int 21h
+	
+do_add_end:
+	mov dx,offset continue
+	mov ah,09H
+	int 21h
+	mov ah,0
+	int 16h
+	
+	pop cx
+	pop si
 	pop bx
 	pop dx
 	pop ax
